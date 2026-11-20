@@ -1,6 +1,7 @@
 import time
 import pygame
 import random
+import copy
 
 # =================================
 # 1. INICIALIZAR PYGAME
@@ -14,12 +15,12 @@ fuente = pygame.font.Font("PressStart2P.ttf", 20)
 game_over = False
 nivel = 0
 puntaje = 0
-
+colorFlash = 255,255,255
 # Variables de Animación
 animacion_eliminacion = False
 filas_completas = []
 tiempo_animacion = 0
-DURACION_ANIMACION = 100
+DURACION_ANIMACION = 420
 
 # Configuración de la ventana
 ANCHO = 600
@@ -29,7 +30,7 @@ pantalla = pygame.display.set_mode((ANCHO, ALTO))
 pygame.display.set_caption("TETRIS - CIRO FIGUEROA")
 
 reloj = pygame.time.Clock()
-VEL_CAIDA_CONST = 100
+VEL_CAIDA_CONST = 800
 VELOCIDAD_CAIDA = VEL_CAIDA_CONST  # Milisegundos
 ultimo_movimiento = pygame.time.get_ticks()
 # Colores
@@ -43,8 +44,8 @@ COLORES = [
     (240, 240, 0),   #Pieza en cuadrado
     (160, 0, 240),   #Pieza en T
     (0, 240, 0),     #Pieza en S
-    (240, 0, 0),     #Pieza en Z
-    (0, 0, 240),     #Pieza en J
+    (200, 0, 50),     #Pieza en Z
+    (0, 50, 200),     #Pieza en J
     (240, 160, 0)    #Pieza en L
 ]
 
@@ -92,7 +93,7 @@ PIEZAS = [
 
 def crear_pieza():
 
-    indice = random.randint(0, 6)
+    indice = copy.deepcopy(random.randint(0, 6))
 
     pieza = PIEZAS[indice]
 
@@ -134,11 +135,13 @@ def movimiento_valido(pieza, nuevo_x, nuevo_y):
 
     return True
 
+pieza_siguiente = crear_pieza()
 def nueva_pieza():
-    global pieza_actual, game_over
+    global pieza_actual, game_over, pieza_siguiente
 
-    pieza_actual = crear_pieza()
 
+    pieza_actual = pieza_siguiente    
+    pieza_siguiente = crear_pieza()
     if not movimiento_valido(
         pieza_actual,
         pieza_actual["x"],
@@ -158,14 +161,25 @@ def dibujar_puntaje():
     pantalla.blit(texto, (10, 10))
 
 def dibujar_gameOver():
+    fuente_game_over = pygame.font.Font("PressStart2P.ttf", 30)
 
-    texto = fuente.render(
-        f"Puntaje: {puntaje}",
+    texto = fuente_game_over.render(
+        f"Game Over",
         True,
         (255, 0, 0)
     )
-    rectangulo = texto.get_rect(center=(ANCHO // 2, ALTO  // 2))
+    rectangulo = texto.get_rect(center=(ANCHO // 2.5, ALTO  // 2.2))
     pantalla.blit(texto, rectangulo)
+
+def dibujar_texto(texto, x, y, tamaño):
+    fuente_texto = pygame.font.Font("PressStart2P.ttf", tamaño)
+    texto = fuente_texto.render(
+        f"{texto}",
+        True,
+        BLANCO
+    )
+
+    pantalla.blit(texto, (x, y))
 
 # Cambiar Puntaje
 
@@ -286,7 +300,7 @@ def dibujar_tablero():
 
                 pygame.draw.rect(
                     pantalla,
-                    (255, 255, 255),
+                    colorFlash,
                     (x, y, TAM_CELDA, TAM_CELDA)
                 )
 
@@ -343,6 +357,37 @@ def dibujar_pieza(pieza):
                     1
                 )
 
+# Dibujar siguiente pieza
+
+def dibujar_pieza_siguiente():
+    forma = pieza_siguiente["forma"]
+    color = pieza_siguiente["color"]
+
+    tamaño = TAM_CELDA
+
+    inicio_x = 425
+    inicio_y = 80
+
+    for fila in range(len(forma)):
+        for columna in range(len(forma[fila])):
+
+            if forma[fila][columna] == 1:
+
+                x = inicio_x + columna * tamaño
+                y = inicio_y + fila * tamaño
+
+                pygame.draw.rect(
+                    pantalla,
+                    color,
+                    (x, y, tamaño, tamaño)
+                )
+
+                pygame.draw.rect(
+                    pantalla,
+                    BLANCO,
+                    (x, y, tamaño, tamaño),
+                    1
+                )
 
 # Crear primera pieza
 
@@ -460,7 +505,14 @@ while ejecutando:
     if animacion_eliminacion:
 
         tiempo_actual = pygame.time.get_ticks()
-
+        if tiempo_actual - tiempo_animacion <= 100:
+            colorFlash = 255,255,255
+        elif tiempo_actual - tiempo_animacion <= 200:
+            colorFlash = 0,0,0
+        elif tiempo_actual - tiempo_animacion <= 300:
+            colorFlash = 255,255,255
+        else:
+            colorFlash = 0,0,0
         if tiempo_actual - tiempo_animacion >= DURACION_ANIMACION:
 
             filas_eliminadas = eliminar_filas()
@@ -473,21 +525,25 @@ while ejecutando:
 
             ultimo_movimiento = pygame.time.get_ticks()
 
-        if game_over:
-            print("Se termino el juego")
-            dibujar_gameOver
     # Limpiar pantalla
     pantalla.fill(NEGRO)
 
     # Dibujar pieza actual
-    dibujar_pieza(pieza_actual)
+    if not game_over:
+        dibujar_pieza(pieza_actual)
 
-    # Dibujar tablero
     dibujar_tablero()
 
-    # Dibujar Puntaje
     dibujar_puntaje()
 
+    dibujar_texto("Siguiente\n  Pieza", 400, 150, 15)
+    dibujar_pieza_siguiente()
+
+    if game_over:
+        dibujar_gameOver()
+        print("Se Termino el juego")
+        break
+    
     # Actualizar pantalla
     pygame.display.update()
 
