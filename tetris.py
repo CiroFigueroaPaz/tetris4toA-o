@@ -14,6 +14,7 @@ fuente = pygame.font.Font("PressStart2P.ttf", 20)
 
 game_over = False
 nivel = 0
+cantidaddeFilasEliminadas = 0
 puntaje = 0
 colorFlash = 255,255,255
 # Variables de Animación
@@ -38,6 +39,7 @@ ultimo_movimiento = pygame.time.get_ticks()
 NEGRO = (0, 0, 0)
 BLANCO = (255, 255, 255)
 GRIS = (10, 10, 10)
+GRISFONDO = (164, 164, 164)
 
 COLORES = [
     (0, 240, 240),   #Pieza en I
@@ -252,7 +254,7 @@ def detectar_filas_completas():
 # Eliminar filas
 
 def eliminar_filas():
-    global tablero
+    global tablero, cantidaddeFilasEliminadas
 
     filas_originales = len(tablero)
 
@@ -265,12 +267,20 @@ def eliminar_filas():
 
     while len(tablero) < FILAS:
         tablero.insert(0, [None for _ in range(COLUMNAS)])
-
+    cantidaddeFilasEliminadas += 1
+    print("Cantidad de Filas Eliminadas:" + str(cantidaddeFilasEliminadas))
     return filas_eliminadas
 
 # Dibujar tablero
 
 def dibujar_tablero():
+    # 0. Dibujar Fondo
+
+    pygame.draw.rect(
+        pantalla,
+        NEGRO,
+        (125, 50, COLUMNAS * TAM_CELDA, FILAS * TAM_CELDA)
+    )
 
     # 1. Dibujar los bloques fijos
     for fila in range(FILAS):
@@ -289,22 +299,7 @@ def dibujar_tablero():
                     (x, y, TAM_CELDA, TAM_CELDA)
                 )
 
-    # 2. Dibujar el parpadeo blanco
-    if animacion_eliminacion:
-
-        for fila in filas_completas:
-            for columna in range(COLUMNAS):
-
-                x = columna * TAM_CELDA + 125
-                y = fila * TAM_CELDA + 50
-
-                pygame.draw.rect(
-                    pantalla,
-                    colorFlash,
-                    (x, y, TAM_CELDA, TAM_CELDA)
-                )
-
-    # 3. Dibujar la cuadrícula al final
+    # 2. Dibujar la cuadrícula al final
     for fila in range(FILAS):
         for columna in range(COLUMNAS):
 
@@ -318,6 +313,23 @@ def dibujar_tablero():
                 1
             )
 
+# Dibujar Animación
+
+def dibujar_animacion_eliminacion():
+
+    if animacion_eliminacion:
+
+        for fila in filas_completas:
+            for columna in range(COLUMNAS):
+
+                x = columna * TAM_CELDA + 125
+                y = fila * TAM_CELDA + 50
+
+                pygame.draw.rect(
+                    pantalla,
+                    colorFlash,
+                    (x, y, TAM_CELDA, TAM_CELDA)
+                )
 
 # Dibujar pieza
 
@@ -394,7 +406,10 @@ def dibujar_pieza_siguiente():
 nueva_pieza()
 
 
-
+# Cambiar config del nivel
+def cambiar_nivel():
+    if nivel == 0:
+        return nivel
 
 # Bucle
 
@@ -496,6 +511,7 @@ while ejecutando:
                 if filas_completas:
                     animacion_eliminacion = True
                     tiempo_animacion = pygame.time.get_ticks()
+                    
 
                 else:
                     nueva_pieza()
@@ -525,15 +541,19 @@ while ejecutando:
 
             ultimo_movimiento = pygame.time.get_ticks()
 
+    if cantidaddeFilasEliminadas >= 10:
+        nivel += 1
+        cambiar_nivel()
     # Limpiar pantalla
-    pantalla.fill(NEGRO)
+    pantalla.fill(GRISFONDO)
 
     # Dibujar pieza actual
-    if not game_over:
-        dibujar_pieza(pieza_actual)
+    
 
     dibujar_tablero()
-
+    if not game_over:
+        dibujar_pieza(pieza_actual)
+    dibujar_animacion_eliminacion()
     dibujar_puntaje()
 
     dibujar_texto("Siguiente\n  Pieza", 400, 150, 15)
