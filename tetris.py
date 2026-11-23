@@ -421,7 +421,7 @@ while ejecutando:
 
     # Comprobar si pasó el tiempo necesario
     
-    # Detectar eventos
+    # Detectar Controles
     for evento in pygame.event.get():
 
         if evento.type == pygame.QUIT:
@@ -454,7 +454,7 @@ while ejecutando:
                 ):
                     pieza_actual["x"] = nuevo_x
 
-        # Mover hacia abajo
+        # SoftDrop
             elif evento.key == pygame.K_DOWN:
                 VELOCIDAD_CAIDA = VEL_CAIDA_CONST
                 puntaje = puntaje + 1
@@ -481,10 +481,36 @@ while ejecutando:
                         nueva_pieza()
                 # Reiniciar el contador de caída
             
-
+            #rotar la pieza
             elif evento.key == pygame.K_UP:
 
                 rotar_pieza(pieza_actual)
+
+            # Hard Drop
+            elif evento.key == pygame.K_SPACE:
+
+                while movimiento_valido(
+                    pieza_actual,
+                    pieza_actual["x"],
+                    pieza_actual["y"] + 1
+                ):
+                    pieza_actual["y"] += 1
+
+                # Colocar la pieza
+                fijar_pieza(pieza_actual)
+
+                # Detectar filas completas
+                filas_completas = detectar_filas_completas()
+
+                if filas_completas:
+                    animacion_eliminacion = True
+                    tiempo_animacion = pygame.time.get_ticks()
+
+                else:
+                    nueva_pieza()
+
+                # Reiniciar el contador de caída
+                ultimo_movimiento = pygame.time.get_ticks()
  
     # Obtener el tiempo actual
     tiempo_actual = pygame.time.get_ticks()
