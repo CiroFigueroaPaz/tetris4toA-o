@@ -2,6 +2,7 @@ import time
 import pygame
 import random
 import copy
+from pathlib import Path
 
 # =================================
 # 1. INICIALIZAR PYGAME
@@ -10,21 +11,27 @@ import copy
 pygame.init()
 pygame.font.init()
 
-fuente = pygame.font.Font("PressStart2P.ttf", 20)
+
+CARPETA_JUEGO = Path(__file__).resolve().parent
+rutaFuente = CARPETA_JUEGO / "PressStart2P.ttf"
+fuente = pygame.font.Font(str(rutaFuente), 20)
 
 game_over = False
 nivel = 0
+nivelConfig = nivel
 cantidaddeFilasEliminadas = 0
 puntaje = 0
+puntajeaMostrar = puntaje
 colorFlash = 255,255,255
 # Variables de Animación
 animacion_eliminacion = False
 filas_completas = []
 tiempo_animacion = 0
 DURACION_ANIMACION = 420
+pausado = False
 
 # Configuración de la ventana
-ANCHO = 600
+ANCHO = 650
 ALTO = 700
 
 pantalla = pygame.display.set_mode((ANCHO, ALTO))
@@ -38,8 +45,10 @@ ultimo_movimiento = pygame.time.get_ticks()
 
 NEGRO = (0, 0, 0)
 BLANCO = (255, 255, 255)
-GRIS = (10, 10, 10)
+GRIS = (30, 30, 30)
+OTROGRIS = (128, 128, 128)
 GRISFONDO = (164, 164, 164)
+GRISCLARO = (210, 210, 210)
 
 COLORES = [
     (0, 240, 240),   #Pieza en I
@@ -50,6 +59,7 @@ COLORES = [
     (0, 50, 200),     #Pieza en J
     (240, 160, 0)    #Pieza en L
 ]
+
 
 # Tablero
 
@@ -153,14 +163,14 @@ def nueva_pieza():
 
 # Dibujar Puntaje
 def dibujar_puntaje():
-
-    texto = fuente.render(
-        f"Puntaje: {puntaje}",
+    fuente_texto = pygame.font.Font("PressStart2P.ttf", 15)
+    texto = fuente_texto.render(
+        f"Puntos: {puntajeaMostrar}",
         True,
         BLANCO
     )
 
-    pantalla.blit(texto, (10, 10))
+    pantalla.blit(texto, (400, 280))
 
 def dibujar_gameOver():
     fuente_game_over = pygame.font.Font("PressStart2P.ttf", 30)
@@ -170,8 +180,20 @@ def dibujar_gameOver():
         True,
         (255, 0, 0)
     )
-    rectangulo = texto.get_rect(center=(ANCHO // 2.5, ALTO  // 2.2))
+    rectangulo = texto.get_rect(center=(ANCHO // 2, ALTO  // 2))
     pantalla.blit(texto, rectangulo)
+
+def dibujar_puntajeFinal():
+    fuente_texto = pygame.font.Font("PressStart2P.ttf", 20)
+
+    texto = fuente_texto.render(
+        f"Puntaje Final: {puntaje}",
+        True,
+        (255, 255, 255)
+    )
+    rectangulo = texto.get_rect(center=(ANCHO // 2, (ALTO  // 2) + 50))
+    pantalla.blit(texto, rectangulo)
+
 
 def dibujar_texto(texto, x, y, tamaño):
     fuente_texto = pygame.font.Font("PressStart2P.ttf", tamaño)
@@ -183,18 +205,38 @@ def dibujar_texto(texto, x, y, tamaño):
 
     pantalla.blit(texto, (x, y))
 
+def dibujar_nivel():
+    fuente_texto = pygame.font.Font("PressStart2P.ttf", 15)
+    texto = fuente_texto.render(
+        f"Nivel: {nivel}",
+        True,
+        BLANCO
+    )
+
+    pantalla.blit(texto, (400, 217))
+
 # Cambiar Puntaje
 
 def cambiar_puntaje(filas):
     global puntaje
-    if filas == 1:
-        puntaje = puntaje + (40 * (nivel + 1))
-    elif filas == 2:
-        puntaje = puntaje + (100 * (nivel + 1))
-    elif filas == 3:
-        puntaje = puntaje + (300 * (nivel + 1))
-    elif filas == 4:
-        puntaje = puntaje + (1200 * (nivel + 1))
+    if nivel == 0:
+        if filas == 1:
+            puntaje = puntaje + (40 * (nivel + 1))
+        elif filas == 2:
+            puntaje = puntaje + (100 * (nivel + 1))
+        elif filas == 3:
+            puntaje = puntaje + (300 * (nivel + 1))
+        elif filas == 4:
+            puntaje = puntaje + (1200 * (nivel + 1))
+    else:
+        if filas == 1:
+            puntaje = puntaje + (40 * (nivel))
+        elif filas == 2:
+            puntaje = puntaje + (100 * (nivel))
+        elif filas == 3:
+            puntaje = puntaje + (300 * (nivel))
+        elif filas == 4:
+            puntaje = puntaje + (1200 * (nivel))
     print(puntaje)
 
 #Fijar la pieza en el tablero
@@ -241,6 +283,8 @@ def rotar_pieza(pieza):
         # Si no es válida, recuperar la forma original
         pieza["forma"] = forma_original
 
+# Corregir la configuracion de niveles
+
 # Detectar filas completas
 def detectar_filas_completas():
     filas = []
@@ -279,15 +323,15 @@ def dibujar_tablero():
     pygame.draw.rect(
         pantalla,
         NEGRO,
-        (125, 50, COLUMNAS * TAM_CELDA, FILAS * TAM_CELDA)
+        (120, 45, COLUMNAS * TAM_CELDA, FILAS * TAM_CELDA)
     )
 
     # 1. Dibujar los bloques fijos
     for fila in range(FILAS):
         for columna in range(COLUMNAS):
 
-            x = columna * TAM_CELDA + 125
-            y = fila * TAM_CELDA + 50
+            x = columna * TAM_CELDA + 120
+            y = fila * TAM_CELDA + 45
 
             color = tablero[fila][columna]
 
@@ -303,8 +347,8 @@ def dibujar_tablero():
     for fila in range(FILAS):
         for columna in range(COLUMNAS):
 
-            x = columna * TAM_CELDA + 125
-            y = fila * TAM_CELDA + 50
+            x = columna * TAM_CELDA + 120
+            y = fila * TAM_CELDA + 45
 
             pygame.draw.rect(
                 pantalla,
@@ -344,8 +388,8 @@ def dibujar_pieza(pieza):
 
             if forma[fila][columna] == 1:
 
-                x = (pieza["x"] + columna) * TAM_CELDA + 125
-                y = (pieza["y"] + fila) * TAM_CELDA + 50
+                x = (pieza["x"] + columna) * TAM_CELDA + 120
+                y = (pieza["y"] + fila) * TAM_CELDA + 45
 
                 pygame.draw.rect(
                     pantalla,
@@ -408,27 +452,39 @@ nueva_pieza()
 
 # Cambiar config del nivel
 def cambiar_nivel():
-    if nivel == 0:
+    global VELOCIDAD_CAIDA
+    if nivel <= 1:
         return nivel
+    else:
+        VELOCIDAD_CAIDA -= 50
+        print(VELOCIDAD_CAIDA)
+
 
 # Bucle
 
 ejecutando = True
 
 while ejecutando:
+    if puntaje >= 99999:
+        puntajeaMostrar = 99999
+    else:
+        puntajeaMostrar = puntaje
 
-    
 
-    # Comprobar si pasó el tiempo necesario
-    
     # Detectar Controles
     for evento in pygame.event.get():
 
         if evento.type == pygame.QUIT:
             ejecutando = False
 
-        # Detectar teclas
-        elif evento.type == pygame.KEYDOWN and not animacion_eliminacion and not game_over:
+        elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_p:
+            if not animacion_eliminacion and not game_over:
+                pausado = not pausado
+
+                if not pausado:
+                    ultimo_movimiento = pygame.time.get_ticks()
+        elif evento.type == pygame.KEYDOWN and not animacion_eliminacion and not game_over and not pausado:
+            
             
             # Mover a la izquierda
             if evento.key == pygame.K_LEFT:
@@ -495,6 +551,7 @@ while ejecutando:
                     pieza_actual["y"] + 1
                 ):
                     pieza_actual["y"] += 1
+                    puntaje += 2
 
                 # Colocar la pieza
                 fijar_pieza(pieza_actual)
@@ -516,7 +573,7 @@ while ejecutando:
     tiempo_actual = pygame.time.get_ticks()
 
     # Comprobar si pasó el tiempo necesario
-    if not animacion_eliminacion and not game_over:
+    if not animacion_eliminacion and not game_over and not pausado:
 
         tiempo_actual = pygame.time.get_ticks()
 
@@ -567,28 +624,85 @@ while ejecutando:
 
             ultimo_movimiento = pygame.time.get_ticks()
 
-    if cantidaddeFilasEliminadas >= 10:
-        nivel += 1
-        cambiar_nivel()
+
+    if nivel < 1: 
+        if cantidaddeFilasEliminadas >= 5:
+            nivel += 1
+            cantidaddeFilasEliminadas = 0
+ 
+            cambiar_nivel()
+    else:
+        if cantidaddeFilasEliminadas >= 5 * nivel:
+            nivel += 1
+            cantidaddeFilasEliminadas = 0
+ 
+            cambiar_nivel()
+
+
     # Limpiar pantalla
     pantalla.fill(GRISFONDO)
 
     # Dibujar pieza actual
-    
 
+    pygame.draw.rect(pantalla, OTROGRIS, (113, 41, (COLUMNAS * TAM_CELDA) + 12, (FILAS * TAM_CELDA) + 12))   
+    pygame.draw.rect(pantalla, GRISCLARO, (115, 40, (COLUMNAS * TAM_CELDA) + 10, (FILAS * TAM_CELDA) + 10))
     dibujar_tablero()
     if not game_over:
         dibujar_pieza(pieza_actual)
     dibujar_animacion_eliminacion()
+
+    pygame.draw.rect(pantalla, GRISCLARO, (385, 260, 220, 60))
+    pygame.draw.rect(pantalla, NEGRO, (390, 265, 210, 50))
     dibujar_puntaje()
 
+    pygame.draw.rect(pantalla, GRISCLARO, (385, 195, 170, 60))
+    pygame.draw.rect(pantalla, NEGRO, (390, 200, 160, 50))
+
+    dibujar_nivel()
+
+    pygame.draw.rect(pantalla, GRISCLARO, (385, 45, 170, 145))
+    pygame.draw.rect(pantalla, NEGRO, (390, 50, 160, 135))
     dibujar_texto("Siguiente\n  Pieza", 400, 150, 15)
     dibujar_pieza_siguiente()
 
+    pygame.draw.rect(pantalla, GRISCLARO, (10, 570, 380, 110))
+    pygame.draw.rect(pantalla, NEGRO, (15, 575, 370, 100))
+    dibujar_texto("\n Mover pieza: Izq y Dcha \n Soft Drop: Abajo \n Hard Drop: Espacio \n Rotar: Arriba \n Pausar: P", 10, 570, 15)
+
+    
+    if pausado:
+
+        # Crear una superficie transparente
+        overlay = pygame.Surface((ANCHO, ALTO))
+        overlay.set_alpha(150)
+        overlay.fill(NEGRO)
+
+        pantalla.blit(overlay, (0, 0))
+
+        pygame.draw.rect(pantalla, GRISCLARO, (170, 270, 170, 60))
+        pygame.draw.rect(pantalla, NEGRO, (175, 275, 160, 50))
+        
+        # Mostrar el texto PAUSA
+        texto_pausa = fuente.render("PAUSA", True, BLANCO)
+
+        rect_texto = texto_pausa.get_rect(center=(250, 300))
+
+        pantalla.blit(texto_pausa, rect_texto)
+
     if game_over:
+        overlay = pygame.Surface((ANCHO, ALTO))
+        overlay.set_alpha(150)
+        overlay.fill(NEGRO)
+
+        pantalla.blit(overlay, (0, 0))
         dibujar_gameOver()
+        dibujar_puntajeFinal()
+        dibujar_texto("    Presiona Enter \n para cerrar el juego", 150, 500, 15)
         print("Se Termino el juego")
-        break
+        if evento.type == pygame.KEYDOWN and evento.key == pygame.K_RETURN:
+            break
+            
+
     
     # Actualizar pantalla
     pygame.display.update()
