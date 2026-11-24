@@ -366,8 +366,8 @@ def dibujar_animacion_eliminacion():
         for fila in filas_completas:
             for columna in range(COLUMNAS):
 
-                x = columna * TAM_CELDA + 125
-                y = fila * TAM_CELDA + 50
+                x = columna * TAM_CELDA + 120
+                y = fila * TAM_CELDA + 45
 
                 pygame.draw.rect(
                     pantalla,
